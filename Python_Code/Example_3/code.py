@@ -8,13 +8,15 @@ import digitalio
 import time
 import neopixel
 
-
 """
-Example Code that uses Gamma correction. 
+Shift and breath. I'm shifting pixel around in a ring buffer. 
 """
 
-# Gamma correction table. Stole this from the internet. I might write
-# some code to generat this table for different gammas.
+# Let's have some list fun.
+red_active =  [1, 1, 1, 1,1,1,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0]
+blue_active = [0, 0, 0, 0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,1,1,1,1,1,1,1]
+
+# Gamma correction table.
 gamma8 = [
 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,
@@ -42,20 +44,33 @@ num_pixels = 25
 pixels = neopixel.NeoPixel(board.D2, num_pixels, brightness=1)
 
 
+# Intial conditions.
+gain = 0
+up = 1
+
+
 # Infinit while loop, this is the processing loop.
 while True:
-    for i in range(128):
-        pixels.fill((gamma8[2*i],0,gamma8[i]))
-        # The gemmaM0 is a bit speed limited, it will not go
-        # faster if you put smaller numbers in. This is why
-        # I use 2xi, so it changes colors faster ;-).
-        time.sleep(0.001)
-    for i in range(128):
-        pixels.fill((gamma8[255-2*i],0,gamma8[127+i]))
-        time.sleep(0.001)
-    for i in range(128):
-        pixels.fill((0,gamma8[2*i],gamma8[255-i]))
-        time.sleep(0.001)
-    for i in range(128):
-        pixels.fill((0,gamma8[255-2*i],gamma8[127-i]))
-        time.sleep(0.001)
+    # Looping over all pixels.
+    for i in range(num_pixels):
+        pixels[i] = (gamma8[gain],gamma8[200]*red_active[i],gamma8[180]*blue_active[i])
+    time.sleep(0.011)
+
+    # Simple trick to do a ring buffer.
+    tmp = red_active.pop(0)
+    red_active.append(tmp)
+    tmp = blue_active.pop(0)
+    blue_active.append(tmp)      
+
+
+    ## Ramping up and down the gain using a state machine approche.  
+    if up == 1:
+        gain = gain + 10
+        if gain >= 255:
+            gain = 255
+            up = 0
+    if up == 0:
+        gain = gain - 10
+        if gain <= 0:
+            gain = 0
+            up = 1

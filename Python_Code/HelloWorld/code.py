@@ -6,6 +6,7 @@
 import board
 import digitalio
 import time
+# Notice that you need "adafruit_pixelbuf.mpy" in our LIB
 import neopixel
 
 
